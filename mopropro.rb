@@ -85,8 +85,8 @@ class MoProPro
 
     status_start("Adding #{devices.size} device#{devices.size == 1 ? "" : "s"}")
 
-    add_device_page = @agent.get("https://developer.apple.com/iphone/manage/devices/add.action")
-    page = add_device_page.form_with(:name => "save") do |form|
+    add_device_page = @agent.get("https://developer.apple.com/ios/manage/devices/add.action")
+    page = add_device_page.form_with(:name => "add") do |form|
       index = 0
       devices.each_pair{ |udid, name|
         form["deviceNameList[#{index}]"]   = name
@@ -99,7 +99,7 @@ class MoProPro
   end
 
   def get_profiles_with_link(matching)
-    profiles_page = @agent.get("http://developer.apple.com/iphone/manage/provisioningprofiles/viewDistributionProfiles.action")
+    profiles_page = @agent.get("http://developer.apple.com/ios/manage/provisioningprofiles/index.action")
     profiles = []
     # Names
     profiles_page.root.search('td.profile span').each_with_index do |span,i|
@@ -136,34 +136,28 @@ class MoProPro
     substatus("Found #{matching_profiles.size} matching profile#{matching_profiles.size == 1 ? "" : "s"}")
 
     # Sort profiles, prefer ones with "Ad Hoc" in their name
-    matching_profiles.sort! do |a,b| 
-      aah = (a[:name] =~ /Ad ?Hoc/i).nil?
-      bah = (b[:name] =~ /Ad ?Hoc/i).nil?
-      return 0 if aah == bah 
-      (aah ? 1 : -1)
-    end
+    # matching_profiles.sort! do |a,b| 
+    #   aah = (a[:name] =~ /Ad ?Hoc/i).nil?
+    #   bah = (b[:name] =~ /Ad ?Hoc/i).nil?
+    #   return 0 if aah == bah 
+    #   (aah ? 1 : -1)
+    # end
 
     # Visit each of the matching profiles until we find an Ad Hoc profile
     matching_profiles.each do |profile|
       edit_page = @agent.click(profile[:link])
-      form = edit_page.form_with(:name => "saveDistribution")
-      # Check if this is an Ad Hoc profile
-      if form.radiobutton_with(:value => "limited").checked
-        # Fix a hidden input, normally done by JavaScript
-        form["distributionMethod"] = "limited"
-        substatus("Found Ad Hoc profile")
-        substatus("Adding devices")
-        devices.each_key do |udid|
-          form.checkbox_with(:value => udid).checked = true
-        end
-        status_start("Saving profile with new devices")
-        form.submit
-        status_end()
-        
-        # Return the profile we adjusted.  It will get a new link, but we can
-        # use the name and app_id to match the right one
-        return profile
+      form = edit_page.form_with(:name => "save")
+      substatus("Adding devices")
+      devices.each_key do |udid|
+        form.checkbox_with(:value => udid).checked = true
       end
+      status_start("Saving profile with new devices")
+      form.submit
+      status_end()
+        
+      # Return the profile we adjusted.  It will get a new link, but we can
+      # use the name and app_id to match the right one
+      return profile
     end
   end
   
@@ -322,7 +316,7 @@ class MoProPro
       if not noprov
         profile = modify_provisioning_profile(app_id, devices)
         error("No matching Ad Hoc provisioning profile found") if not profile
-        retrieve_new_profile(profile)
+        #retrieve_new_profile(profile)
       end
     rescue Mechanize::ResponseCodeError => ex
       error("HTTP #{ex.message}")
