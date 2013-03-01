@@ -180,15 +180,14 @@ class MoProPro
     end
     
     error("Still pending, bailing out.  Sorry!") if not profiles[-1].has_key?(:link)
-    # else
-    
+
     download_link = profiles.collect do |pr| 
-      pr[:link] if pr[:name] == profile[:name] && pr[:app_id] == profile[:app_id]
+      pr[:link] if pr[:name] == 'MedOptimizer Profile' && pr[:app_id] == profile[:app_id] #Hard coded MO profile name 
     end.compact.first
 
     error("No matching profile found?  Bailing out, sorry!") if not download_link
     # else
-    
+    p download_link.inspect
     file = @agent.click(download_link)
     file.save_as(file.filename) # Overwrites if exists
     status_end("Got it!")
@@ -316,7 +315,7 @@ class MoProPro
       if not noprov
         profile = modify_provisioning_profile(app_id, devices)
         error("No matching Ad Hoc provisioning profile found") if not profile
-        #retrieve_new_profile(profile)
+        retrieve_new_profile(profile)
       end
     rescue Mechanize::ResponseCodeError => ex
       error("HTTP #{ex.message}")
